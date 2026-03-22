@@ -1,0 +1,7 @@
+Project Type Meanings
+
+🔵 = L  = Learning-heavy
+🟦 = LB = Learning + Build
+🔺 = B  = Build-heavy
+💠 = D  = Data / Research-heavy
+⭐ = I  = Integration-heavy
