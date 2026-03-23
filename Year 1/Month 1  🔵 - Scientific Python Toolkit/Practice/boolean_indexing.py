@@ -32,11 +32,11 @@ new_z = z >= 15
 # )
 
 rowsum = t.sum(1)
-# """
-# rowsum = array.sum(1)
-# columnsum = array.sum(0)
-# """
-# 
+"""
+rowsum = array.sum(1)
+columnsum = array.sum(0)
+"""
+
 # print(t
 #       ,rowsum
 #       ,t[rowsum >= 2, :]
@@ -46,12 +46,17 @@ rowsum = t.sum(1)
 rows_e = (e.sum(1) % 2) == 0
 rows_e_nz = np.nonzero(rows_e)[0]
 columns_e = np.array([0, 2])
-print(e
-      ,np.ndim(rows_e)
-      ,np.ndim(columns_e)
-      ,rows_e
-      ,rows_e_nz
-      ,columns_e
-      ,e[rows_e_nz[:, np.newaxis], columns_e[np.newaxis, :]] # Path 1
-      ,e[np.ix_(rows_e, columns_e)] # Path 2
+# print(e
+#       ,np.ndim(rows_e)
+#       ,np.ndim(columns_e)
+#       ,rows_e
+#       ,rows_e_nz
+#       ,columns_e
+#       ,e[rows_e_nz[:, np.newaxis], columns_e[np.newaxis, :]] # Path 1
+#       ,e[np.ix_(rows_e, columns_e)] # Path 2
+#       ,sep="\n-----\n")
+
+new_second_z = z[np.array([0, 2, 4]), 0:3]
+print(z
+      ,new_second_z
       ,sep="\n-----\n")
