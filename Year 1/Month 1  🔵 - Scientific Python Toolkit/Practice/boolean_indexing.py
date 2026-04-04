@@ -15,11 +15,11 @@ e = np.arange(12).reshape(4, 3)
 
 # ~ -> invert
 
-# print(y
-#       ,y<=0
-#       ,y[y<=0]
-#       ,y[y<=0] + 20
-#       ,sep="\n-----\n")
+print(y
+      ,y<=0
+      ,y[y<=0]
+      ,y[y<=0] + 20
+      ,sep="\n-----\n")
 
 new_z = z >= 15
 # print(z
@@ -37,11 +37,11 @@ rowsum = array.sum(1)
 columnsum = array.sum(0)
 """
 
-# print(t
-#       ,rowsum
-#       ,t[rowsum >= 2, :]
-#       ,t[np.ix_(rowsum >= 2)]
-#       ,sep="\n-----\n")
+print(t
+      ,rowsum
+      ,t[rowsum >= 2, :]
+      ,t[np.ix_(rowsum >= 2)]
+      ,sep="\n-----\n")
 
 rows_e = (e.sum(1) % 2) == 0
 rows_e_nz = np.nonzero(rows_e)[0]
@@ -57,6 +57,6 @@ columns_e = np.array([0, 2])
 #       ,sep="\n-----\n")
 
 new_second_z = z[np.array([0, 2, 4]), 0:3]
-print(z
-      ,new_second_z
-      ,sep="\n-----\n")
+# print(z
+#       ,new_second_z
+#       ,sep="\n-----\n")
