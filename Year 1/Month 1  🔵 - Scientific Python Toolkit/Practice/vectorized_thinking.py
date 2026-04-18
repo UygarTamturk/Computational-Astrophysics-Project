@@ -35,11 +35,11 @@ conditional_array = np.where(
     ,False
 )
 
-print(unmasked_array
-      ,masked_array
-      ,conditional_array
-      ,unmasked_array[conditional_array]
-      ,sep="\n")
+# print(unmasked_array
+#       ,masked_array
+#       ,conditional_array
+#       ,unmasked_array[conditional_array]
+#       ,sep="\n")
 
 # Arange
 
@@ -49,14 +49,15 @@ indices_np = np.arange(len(array))
 nested_list_py = [i * 10 for i in range(len(array))]
 not_nested_array_np = np.arange(len(array)) * 10
 
-# print(indices_py
-#       ,indices_np
-#       ,nested_list_py
-#       ,not_nested_array_np
-#       ,sep="\n")
+print(array
+      ,indices_py
+      ,indices_np
+      ,nested_list_py
+      ,not_nested_array_np
+      ,sep="\n")
 
 # ndenumerating
 
 ndarray = np.arange(100).reshape(10, 10)
-for (i, j), value in np.ndenumerate(ndarray):
-    print(f"At row {i}, col{j}, the value is {value}")
+# for (i, j), value in np.ndenumerate(ndarray):
+#     print(f"At row {i}, col{j}, the value is {value}")
