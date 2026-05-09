@@ -11,7 +11,6 @@ fig.tight_layout()
 ax[0, 0].plot(t, np.ones([t.size]) * acceleration)
 ax[0, 0].set_ylabel("acceleration")
 
-
 ax[1, 0].plot(t, t * acceleration)
 ax[1, 0].set_ylabel("velocity")
 

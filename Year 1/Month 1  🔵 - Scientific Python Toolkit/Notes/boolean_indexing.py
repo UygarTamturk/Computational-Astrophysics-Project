@@ -15,11 +15,11 @@ e = np.arange(12).reshape(4, 3)
 
 # ~ -> invert
 
-print(y
-      ,y<=0
-      ,y[y<=0]
-      ,y[y<=0] + 20
-      ,sep="\n-----\n")
+# print(y
+#       ,y<=0
+#       ,y[y<=0]
+#       ,y[y<=0] + 20
+#       ,sep="\n-----\n")
 
 new_z = z >= 15
 # print(z
