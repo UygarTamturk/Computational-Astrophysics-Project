@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 @dataclass
 class SimulationSettings:
-    SCREEN = pg.display.set_mode((1540, 800))
+    SCREEN = pg.display.set_mode((2500, 1200))
     CLOCK = pg.Clock()
     FPS: int = 60
 
@@ -17,43 +17,31 @@ class Arrow(pg.sprite.Sprite):
         self.position = pg.Vector2(x, y)
         self.magnitude = 10
 
-        self.original_image = pg.Surface((32, 32), pg.SRCALPHA)
+        self.original_image = pg.Surface((16, 16), pg.SRCALPHA)
 
         self.image = self.original_image.copy()
         self.rect = self.image.get_frect(center = (x, y))
 
-        self.stop_drawing = False
+    def change_color(self, distance):
+        color = (255, 255, 255)
 
-    def draw_line(self, distance):
+        reduce_color = (0, round(distance/2), 10 * round(distance/2))
         
+        color = tuple(max(0, val - sub) for val, sub in zip(color, reduce_color))
+        self.original_image.fill(color)
 
-        if not self.stop_drawing:
-            self.stop_drawing = True
-            start_pos = (self.original_image.size[0]/2, self.original_image.size[1]/2)
-            end_posx = self.original_image.size[0]/2 - 50
-            end_posy = self.original_image.size[1]/2
-            width = 10
-            color = (255, 255, 255)
-
-            reduce_color = (0, round(distance/2), 10 * round(distance/2))
-            color = tuple(max(0, val - sub) for val, sub in zip(color, reduce_color))
-
-            self.line = pg.draw.line(self.original_image
-                        , color
-                        , start_pos
-                        , (end_posx, end_posy)
-                        , width)
-        
     def rotation_towards_object(self, objx, objy):
+        
+
         Dx, Dy = self.position.x - objx, self.position.y - objy
         theta = np.atan2(Dy, Dx)
         angle = -np.degrees(theta)
-
+        
         distance = np.sqrt(Dx**2 + Dy**2)
-       
-        self.image = pg.transform.rotate(self.original_image, angle)
+
+        self.image = pg.transform.rotozoom(self.original_image, angle, max(0, 1 - distance/1250))
         self.rect = self.image.get_frect(center = (self.position.x, self.position.y))
-        self.draw_line(distance)
+        self.change_color(distance)
 
 class Object(pg.sprite.Sprite):
     def __init__(self, x, y, *groups):
@@ -114,13 +102,13 @@ class Simulation:
 
             self.object_.move()
             for arrow in self.arrow_group.sprites():
-                arrow.rotation_towards_object(*self.object_.positional_value())
+                arrow.rotation_towards_object(mouse_pos[0], mouse_pos[1]) #*self.object_.positional_value()
 
             self.arrow_group.draw(self.SCREEN)
             self.arrow_group.update()
 
-            self.object_group.draw(self.SCREEN)
-            self.arrow_group.update()
+            # self.object_group.draw(self.SCREEN)
+            # self.object_group.update()
 
             self.CLOCK.tick(self.FPS)
             pg.display.flip()
