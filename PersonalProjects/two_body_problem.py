@@ -45,54 +45,54 @@ class CelestialObject(pg.sprite.Sprite):
 
         # self.collision_rect = self.image.get_frect(center = self.size)
     
-    def move(self, objs):
-        object_list = np.array([0, 0, 0], dtype=np.float32)
+    def move(self, objs, dt):
+
+        # Energy Loss can be implemented to avoid repeated, predictable and unrealistic actions
+
+        total_force = np.array([0, 0], dtype=np.float32)
+        
+        ## Center of Mass Method ->Does not obey to Newton's Third Law of Motion
+        # object_list = np.array([0, 0, 0], dtype=np.float32)
         steps = 0
 
         for ind, obj in enumerate(objs):
             steps += 1
 
-
+            
             if not type(obj) is int:
-                mx = obj[0]*obj[2]
-                my = obj[1]*obj[2]
-                m = obj[2]
-
-                object_list += np.array([mx, my, m])
-
-
-            # Apply center of mass according to the masses of the celestial objects
-            print(steps, len(objs))
-            if steps == len(objs):
-                object_list = np.array([object_list[0]/object_list[2], object_list[1]/object_list[2], object_list[2]])
-
-                print(object_list)
-
-
-        objx, objy, objm = object_list
+                Dx, Dy = obj[0] - self.position.x, obj[1] - self.position.y
+                dist = np.sqrt(Dx**2 + Dy**2)
 
             
-        Dx, Dy = objx - self.position.x, objy - self.position.y
-        dist = np.sqrt(Dx**2 + Dy**2)
+                force = self.G*self.mass*obj[2]/max(Dx**2 + Dy**2, 10000)
+                print(f"{self.id} object is exerting {force}")
 
+                force_x = force*(Dx/dist)
+                force_y = force*(Dy/dist)
+
+                total_force += np.array([force_x, force_y])
+
+            
+
+
+
+            ## Center of Mass Method -> Does not obey to Newton's Third Law of Motion
+            # if not type(obj) is int:
+            #     mx = obj[0]*obj[2]
+            #     my = obj[1]*obj[2]
+            #     m = obj[2]
+
+            #     object_list += np.array([mx, my, m])
+            # if steps == len(objs):
+            #     object_list = np.array([object_list[0]/object_list[2], object_list[1]/object_list[2], object_list[2]])
+
+            #     print(object_list)
         
-        force = self.G*self.mass*objm/max(Dx**2 + Dy**2, 10000)
-        print(f"{self.id} object is exerting {force}")
 
-        force_x = force*(Dx/dist)
-        force_y = force*(Dy/dist)
+        acceleration_x = total_force[0]/self.mass
+        acceleration_y = total_force[1]/self.mass
 
-
-        acceleration_x = force_x/self.mass
-        acceleration_y = force_y/self.mass
-
-        # Stops following the cursor after a certain time period
-
-        self.acceleration = pg.Vector2(acceleration_x, acceleration_y)
-
-        print(self.acceleration)
-
-        
+        self.acceleration = pg.Vector2(acceleration_x, acceleration_y)     
         self.velocity += self.acceleration
 
         # print(f"velocity -> {self.velocity}\nacceleration -> {self.acceleration}\nforce -> {force}\ndist -> {dist}")
@@ -125,7 +125,7 @@ class Simulation:
         self.celestial_object_group = pg.sprite.Group()
 
         self.celestial_objects = [
-            (1, 1500, 600, 800, (255, 0, 0), self.celestial_object_group),
+            (1, 1500, 600, 150, (255, 0, 0), self.celestial_object_group),
             (2, 2000, 450, 150, (0, 0, 255),self.celestial_object_group),
             (3, 2000, 300, 150, (0, 255, 0),self.celestial_object_group),
         ]
@@ -148,7 +148,7 @@ class Simulation:
                     self.run_simulation = False
 
             for obj in self.celestial_object_group.sprites():
-                obj.move([np.array([other_obj.rect.x, other_obj.rect.y, other_obj.mass]) if other_obj.id != obj.id else 0 for other_obj in self.celestial_object_group.sprites()])
+                obj.move([np.array([other_obj.rect.x, other_obj.rect.y, other_obj.mass]) if other_obj.id != obj.id else 0 for other_obj in self.celestial_object_group.sprites()], dt)
 
 
             self.celestial_object_group.draw(self.SCREEN)
@@ -160,5 +160,3 @@ class Simulation:
 if "__main__" == __name__:
     simulation = Simulation()
     simulation.run()
-
-
