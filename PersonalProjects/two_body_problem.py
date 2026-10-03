@@ -53,14 +53,12 @@ class CelestialObject(pg.sprite.Sprite):
             steps += 1
 
 
-            # the issue with the dismissal of obj 3 ind 3 is due to this if function, it completely skips the entire steps == len(objs) at the end of the loop due to the last value of obj being 0
-            if type(obj) is int or ind == len(objs) - 1:
-                continue
-            mx = obj[0]*obj[2]
-            my = obj[1]*obj[2]
-            m = obj[2]
+            if not type(obj) is int:
+                mx = obj[0]*obj[2]
+                my = obj[1]*obj[2]
+                m = obj[2]
 
-            object_list += np.array([mx, my, m])
+                object_list += np.array([mx, my, m])
 
 
             # Apply center of mass according to the masses of the celestial objects
@@ -74,34 +72,34 @@ class CelestialObject(pg.sprite.Sprite):
         objx, objy, objm = object_list
 
             
-        # Dx, Dy = objx - self.position.x, objy - self.position.y
-        # dist = np.sqrt(Dx**2 + Dy**2)
+        Dx, Dy = objx - self.position.x, objy - self.position.y
+        dist = np.sqrt(Dx**2 + Dy**2)
 
         
-        # force = self.G*self.mass*objm/max(Dx**2 + Dy**2, 10000)
-        # print(f"{self.id} object is exerting {force}")
+        force = self.G*self.mass*objm/max(Dx**2 + Dy**2, 10000)
+        print(f"{self.id} object is exerting {force}")
 
-        # force_x = force*(Dx/dist)
-        # force_y = force*(Dy/dist)
+        force_x = force*(Dx/dist)
+        force_y = force*(Dy/dist)
 
 
-        # acceleration_x = force_x/self.mass
-        # acceleration_y = force_y/self.mass
+        acceleration_x = force_x/self.mass
+        acceleration_y = force_y/self.mass
 
-        # # Stops following the cursor after a certain time period
+        # Stops following the cursor after a certain time period
 
-        # self.acceleration = pg.Vector2(acceleration_x, acceleration_y)
+        self.acceleration = pg.Vector2(acceleration_x, acceleration_y)
 
-        # print(self.acceleration)
+        print(self.acceleration)
 
         
-        # self.velocity += self.acceleration
+        self.velocity += self.acceleration
 
-        # # print(f"velocity -> {self.velocity}\nacceleration -> {self.acceleration}\nforce -> {force}\ndist -> {dist}")
-        # self.position += self.velocity
+        # print(f"velocity -> {self.velocity}\nacceleration -> {self.acceleration}\nforce -> {force}\ndist -> {dist}")
+        self.position += self.velocity
 
-        # self.rect.x = self.position.x
-        # self.rect.y = self.position.y
+        self.rect.x = self.position.x
+        self.rect.y = self.position.y
 
 
 
@@ -127,18 +125,15 @@ class Simulation:
         self.celestial_object_group = pg.sprite.Group()
 
         self.celestial_objects = [
-            (1, 1500, 600, 150, (255, 0, 0), self.celestial_object_group),
+            (1, 1500, 600, 800, (255, 0, 0), self.celestial_object_group),
             (2, 2000, 450, 150, (0, 0, 255),self.celestial_object_group),
-            (3, 2000, 300, 150, (0, 255, 0),self.celestial_object_group)
+            (3, 2000, 300, 150, (0, 255, 0),self.celestial_object_group),
         ]
 
 
         for obj in self.celestial_objects:
             self.celestial_object = CelestialObject(*obj)
 
-        for obj in self.celestial_object_group.sprites():
-
-                obj.move([np.array([other_obj.rect.x, other_obj.rect.y, other_obj.mass]) if other_obj.id != obj.id else 0 for other_obj in self.celestial_object_group.sprites()])
 
     def run(self):
         while self.run_simulation:
@@ -151,6 +146,9 @@ class Simulation:
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     self.run_simulation = False
+
+            for obj in self.celestial_object_group.sprites():
+                obj.move([np.array([other_obj.rect.x, other_obj.rect.y, other_obj.mass]) if other_obj.id != obj.id else 0 for other_obj in self.celestial_object_group.sprites()])
 
 
             self.celestial_object_group.draw(self.SCREEN)
