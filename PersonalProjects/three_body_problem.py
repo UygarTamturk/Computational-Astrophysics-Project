@@ -1,12 +1,6 @@
 import pygame as pg
 import numpy as np
-
-import matplotlib
-matplotlib.use("Agg")
-
-import matplotlib.backends.backend_agg as agg
 import matplotlib.pyplot as plt
-
 import pandas as pd
 
 from random import randint
@@ -17,49 +11,13 @@ from dataclasses import dataclass
 class SimulationSettings:
     SCREEN = pg.display.set_mode((3100, 1400))
     CLOCK = pg.Clock()
-    GRAVITATIONAL_CONSTANT: float = 6.6
+    GRAVITATIONAL_CONSTANT: float = 7
     FPS: int = 60
 
 @dataclass
 class StandartObjectSettings:
     SIZE: tuple[int, int] = (32, 32)
-    COLOR: tuple[int, int, int] = (255, 255, 255)
-
-def visualise_data(object_, time):
-
-    # having two DataFrames just to store object index and object data seperately is inefficient. Reduce it to one DataFrame
-
-    # object_id (integer), object_data (DataFrame form)
-    object_ = object_.to_numpy()
-    object_id = object_[:, 0]
-    object_data = object_[:, 1]
-
-
-    figure, ax = plt.subplots()
-
-    print(object)
-
-    for ind in range(len(object_)):
-        ax.plot(time, object_data[ind][0].y, marker="o", label=f"{object_id[ind]}")
-
-    ax.set_xlabel("time")
-    ax.set_ylabel("x position")
-    ax.set_title("observation")
-    ax.legend()
-
-    canvas = agg.FigureCanvasAgg(figure)
-    canvas.draw()
-    renderer = canvas.get_renderer()
-    raw_data = renderer.buffer_rgba()
-
-    size = canvas.get_width_height()
-    surf = pg.image.frombuffer(raw_data, size, "RGBA")
-
-    plt.close(figure)
-
-    return surf
-
-    
+    COLOR: tuple[int, int, int] = (255, 255, 255) 
 
 class CelestialObject(pg.sprite.Sprite):
 
@@ -83,57 +41,47 @@ class CelestialObject(pg.sprite.Sprite):
         self.color = color
         self.previous_acceleration = 0
 
-        self.image = pg.Surface(self.size, pg.SRCALPHA)
+        self.image = pg.Surface((self.size[0]-2, self.size[1]-2), pg.SRCALPHA)
         pg.draw.circle(self.image, self.color, (self.size[0]/2, self.size[0]/2), self.size[0]/2)
         self.rect = self.image.get_frect(center=self.position)
 
-        self.own_data = [self.position, self.velocity, self.acceleration]
-        self.index = ["position", "velocity", "acceleration"]
-        
+    def collision_check(self, other_rect, other_velocity, other_mass):
+        if self.rect.colliderect(other_rect):
+            f_velocity = pg.Vector2((self.mass - other_mass)/(self.mass + other_mass)*self.velocity + (2*other_mass)/(self.mass + other_mass)*other_velocity)
+            print(f_velocity)
+            f_momentum = f_velocity * self.mass
 
-        # self.collision_rect = self.image.get_frect(center = self.size)
+            return f_momentum
+
+        return 0
+
     
     def move(self, objs, dt):
-
         # Energy Loss can be implemented to avoid repeated, predictable and unrealistic actions
 
         total_force = np.array([0, 0], dtype=np.float32)
-        
-        ## Center of Mass Method ->Does not obey to Newton's Third Law of Motion
-        # object_list = np.array([0, 0, 0], dtype=np.float32)
-        steps = 0
 
-        for ind, obj in enumerate(objs):
-            steps += 1
-
-            
+        for obj in objs:
             if not type(obj) is int:
-                Dx, Dy = obj[0] - self.position.x, obj[1] - self.position.y
+
+                other_position = obj.position
+                other_velocity = obj.velocity
+                other_mass = obj.mass
+
+                f_momentum = self.collision_check(obj.rect, other_velocity, other_mass)
+                if f_momentum != 0:
+                    
+                    self.velocity = (f_momentum/self.mass) if f_momentum/self.mass != 0 else self.velocity
+
+                Dx, Dy = other_position.x - self.position.x, other_position.y - self.position.y
                 dist = np.sqrt(max(Dx**2 + Dy**2, 10000))
             
-                force = self.G*self.mass*obj[2]/(dist**2)
-                # print(f"{self.id} object is exerting {force}")
+                force = self.G*self.mass*other_mass/(dist**2)
 
                 force_x = force*(Dx/dist)
                 force_y = force*(Dy/dist)
 
                 total_force += np.array([force_x, force_y])
-
-            
-
-
-
-            ## Center of Mass Method -> Does not obey to Newton's Third Law of Motion
-            # if not type(obj) is int:
-            #     mx = obj[0]*obj[2]
-            #     my = obj[1]*obj[2]
-            #     m = obj[2]
-
-            #     object_list += np.array([mx, my, m])
-            # if steps == len(objs):
-            #     object_list = np.array([object_list[0]/object_list[2], object_list[1]/object_list[2], object_list[2]])
-
-            #     print(object_list)
         
 
         acceleration_x = total_force[0]/self.mass
@@ -147,19 +95,10 @@ class CelestialObject(pg.sprite.Sprite):
 
         self.rect = self.image.get_frect(center=self.position)
 
-        for ind in range(len(self.own_data)):
-            # print(self.own_data[item])
-            self.own_data[ind] = getattr(self, self.index[ind])
-
-
-
         """
         need physical time steps
         """
 
-    def return_data(self):
-        return self.own_data
-        
 
 
 
@@ -176,12 +115,17 @@ class Simulation:
 
         self.celestial_object_group = pg.sprite.Group()
 
-        self.celestial_objects = [
-            (1, 1500, 600, 150, (255, 0, 0), self.celestial_object_group),
-            (2, 2000, 450, 150, (0, 0, 255),self.celestial_object_group),
-            (3, 2000, 300, 150, (0, 255, 0),self.celestial_object_group),
-        ]
+        n = 50
 
+        self.celestial_objects = []
+        for i in range(n):
+            object_x = randint(100, self.SCREEN.width-100)
+            object_y = randint(50, self.SCREEN.height-50)
+            mass = randint(200, 300)
+            color = (randint(50, 200), randint(50, 200), randint(50, 200))
+            
+
+            self.celestial_objects.append((i, object_x, object_y, mass, color, self.celestial_object_group))
 
         for obj in self.celestial_objects:
             self.celestial_object = CelestialObject(*obj)
@@ -191,28 +135,20 @@ class Simulation:
         while self.run_simulation:
             
             self.SCREEN.fill((10, 10, 25))
-
-            mouse_pos = pg.mouse.get_pos()
-            dt = self.CLOCK.tick(self.FPS) / 1000.0
+            dt = self.CLOCK.tick(self.FPS) / 100.0
             
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     self.run_simulation = False
 
-            total_data = pd.DataFrame({})
             for obj in self.celestial_object_group.sprites():
-                obj.move([np.array([other_obj.rect.x, other_obj.rect.y, other_obj.mass]) if other_obj.id != obj.id else 0 for other_obj in self.celestial_object_group.sprites()], dt)
-                new_data = [{"object_id": obj.id, "object_data": obj.return_data()}]
-                total_data = pd.concat([total_data, pd.DataFrame(new_data)], ignore_index=True)
+                obj.move([other_obj if other_obj.id != obj.id else 0 for other_obj in self.celestial_object_group.sprites()], dt)
 
-            surf = visualise_data(total_data, self.time_taken)
-            
+                
             self.time_taken += dt
 
             self.celestial_object_group.draw(self.SCREEN)
             self.celestial_object_group.update()
-
-            self.SCREEN.blit(surf, (50, 50))
 
             pg.display.flip()
             plt.show()
