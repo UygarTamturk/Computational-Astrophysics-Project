@@ -45,15 +45,14 @@ class CelestialObject(pg.sprite.Sprite):
         pg.draw.circle(self.image, self.color, (self.size[0]/2, self.size[0]/2), self.size[0]/2)
         self.rect = self.image.get_frect(center=self.position)
 
-    def collision_check(self, other_rect, other_velocity, other_mass):
-        if self.rect.colliderect(other_rect):
-            f_velocity = pg.Vector2((self.mass - other_mass)/(self.mass + other_mass)*self.velocity + (2*other_mass)/(self.mass + other_mass)*other_velocity)
-            print(f_velocity)
-            f_momentum = f_velocity * self.mass
+    def collision_check(objs):
+        print(f"{len(objs)} {objs}")
+        # x object - y object -> calculate two final velocities and two momentums
+        # f_velocity = pg.Vector2((self_obj.mass - obj.mass)/(self_obj.mass + obj.mass)*self_obj + (2*other_mass)/(self.mass + other_mass)*other_velocity)
+        # print(f_velocity)
+        # f_momentum = f_velocity * self.mass
 
-            return f_momentum
 
-        return 0
 
     
     def move(self, objs, dt):
@@ -68,7 +67,7 @@ class CelestialObject(pg.sprite.Sprite):
                 other_velocity = obj.velocity
                 other_mass = obj.mass
 
-                f_momentum = self.collision_check(obj.rect, other_velocity, other_mass)
+                f_momentum = 0 # self.collision_check(obj.rect, other_velocity, other_mass)
                 if f_momentum != 0:
                     
                     self.velocity = (f_momentum/self.mass) if f_momentum/self.mass != 0 else self.velocity
@@ -115,6 +114,12 @@ class Simulation:
 
         self.celestial_object_group = pg.sprite.Group()
 
+
+        self.slice = 10
+        self.screen_cells = np.array([[pg.rect.Rect(j*self.SCREEN.width/self.slice, i*self.SCREEN.height/self.slice, self.SCREEN.width/self.slice, self.SCREEN.height/self.slice) for j in range(self.slice)] for i in range(self.slice)])
+        
+
+ 
         n = 50
 
         self.celestial_objects = []
@@ -144,7 +149,18 @@ class Simulation:
             for obj in self.celestial_object_group.sprites():
                 obj.move([other_obj if other_obj.id != obj.id else 0 for other_obj in self.celestial_object_group.sprites()], dt)
 
-                
+            for c in self.screen_cells:
+                for r in c:
+                    r = pg.Rect(r[:])
+                    objs = r.collideobjectsall(self.celestial_object_group.sprites())
+                    if len(objs) == 0:
+                        continue
+
+                    CelestialObject.collision_check(objs)
+
+
+
+
             self.time_taken += dt
 
             self.celestial_object_group.draw(self.SCREEN)
