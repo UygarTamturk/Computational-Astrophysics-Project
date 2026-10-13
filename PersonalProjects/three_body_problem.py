@@ -45,8 +45,39 @@ class CelestialObject(pg.sprite.Sprite):
         pg.draw.circle(self.image, self.color, (self.size[0]/2, self.size[0]/2), self.size[0]/2)
         self.rect = self.image.get_frect(center=self.position)
 
-    def collision_check(objs):
-        print(f"{len(objs)} {objs}")
+    def collision_check(objs, dt):
+
+        marked_objects = pd.DataFrame({"object_id": ind, "object": obj, "total_velocity": pg.Vector2(0, 0)} for ind, obj in enumerate(objs))
+        
+        for index, object in enumerate(marked_objects["object"]):
+            collide_list = object.rect.collidelistall(objs)
+            for collided_object in collide_list:
+                if collided_object == index:
+                    continue
+
+                other_object = marked_objects.iloc[collided_object]["object"]
+
+                v1, v2 = object.velocity, other_object.velocity
+                m1, m2 = object.mass, other_object.mass
+
+                
+                f_v1 = (m1 - m2)/(m1 + m2)*v1 + (2*m2)/(m1 + m2)*v2
+                f_v2 = (2*m1)/(m1 + m2)*v1 + (m2 - m1)/(m1 + m2)*v2
+
+
+                marked_objects.iloc[index]["total_velocity"] += f_v1 * dt
+                marked_objects.iloc[collided_object]["total_velocity"] += f_v2 * dt
+
+
+
+        for index, object in enumerate(marked_objects["object"]):
+            object.velocity = marked_objects.iloc[index]["total_velocity"]
+
+
+
+        # v1f = (m1 - m2)/(m1 + m2)*v1i + (2*m2)/(m1 + m2)*v2i
+        # v2f = (2*m1)/(m1 + m2)*v1i + (m2 - m1)/(m1 + m2)*v2i
+
         # x object - y object -> calculate two final velocities and two momentums
         # f_velocity = pg.Vector2((self_obj.mass - obj.mass)/(self_obj.mass + obj.mass)*self_obj + (2*other_mass)/(self.mass + other_mass)*other_velocity)
         # print(f_velocity)
@@ -66,11 +97,6 @@ class CelestialObject(pg.sprite.Sprite):
                 other_position = obj.position
                 other_velocity = obj.velocity
                 other_mass = obj.mass
-
-                f_momentum = 0 # self.collision_check(obj.rect, other_velocity, other_mass)
-                if f_momentum != 0:
-                    
-                    self.velocity = (f_momentum/self.mass) if f_momentum/self.mass != 0 else self.velocity
 
                 Dx, Dy = other_position.x - self.position.x, other_position.y - self.position.y
                 dist = np.sqrt(max(Dx**2 + Dy**2, 10000))
@@ -156,7 +182,7 @@ class Simulation:
                     if len(objs) == 0:
                         continue
 
-                    CelestialObject.collision_check(objs)
+                    CelestialObject.collision_check(objs, dt)
 
 
 
