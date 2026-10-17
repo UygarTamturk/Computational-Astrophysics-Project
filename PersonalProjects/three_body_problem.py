@@ -35,43 +35,60 @@ class CelestialObject(pg.sprite.Sprite):
         self.position = pg.Vector2(x, y)
         self.velocity = pg.Vector2(0, 0)
         self.acceleration = pg.Vector2(0, 0)
+        self.force = pg.Vector2(0, 0) # for debugging purposes
         
         self.mass = mass
         self.size = tuple(standart * mass/100 for standart in standart_settings.SIZE)
         self.color = color
         self.previous_acceleration = 0
 
-        self.image = pg.Surface((self.size[0]-2, self.size[1]-2), pg.SRCALPHA)
+        self.image = pg.Surface((self.size[0], self.size[1]), pg.SRCALPHA)
         pg.draw.circle(self.image, self.color, (self.size[0]/2, self.size[0]/2), self.size[0]/2)
         self.rect = self.image.get_frect(center=self.position)
 
     def collision_check(objs, dt):
-
-        marked_objects = pd.DataFrame({"object_id": ind, "object": obj, "total_velocity": pg.Vector2(0, 0)} for ind, obj in enumerate(objs))
-        
-        for index, object in enumerate(marked_objects["object"]):
+        for index, object in enumerate(objs):
             collide_list = object.rect.collidelistall(objs)
             for collided_object in collide_list:
-                if collided_object == index:
+                if collided_object <= index:
                     continue
 
-                other_object = marked_objects.iloc[collided_object]["object"]
+                other_object = objs[collided_object]
 
-                v1, v2 = object.velocity, other_object.velocity
-                m1, m2 = object.mass, other_object.mass
+                pos1, pos2 = object.position, other_object.position
+                Dpos = pos2 - pos1
+                dist = Dpos.length()
+                print(dist, object.size[0]/2 + other_object.size[0]/2)
 
-                
-                f_v1 = (m1 - m2)/(m1 + m2)*v1 + (2*m2)/(m1 + m2)*v2
-                f_v2 = (2*m1)/(m1 + m2)*v1 + (m2 - m1)/(m1 + m2)*v2
+                max_center_distance = object.size[0]/2 + other_object.size[0]/2
+
+                if dist > max_center_distance + 5 or dist < max_center_distance - 5:
+                    
+                    v1, v2 = object.velocity, other_object.velocity
+                    m1, m2 = object.mass, other_object.mass
+                    
+                    unit_direction = Dpos.normalize()
+                    
+                    v1_c_scalar = v1.dot(unit_direction)
+                    v2_c_scalar = v2.dot(unit_direction)
+                     
+                    f_v1_c_sc = (m1 - m2)/(m1 + m2)*v1_c_scalar + (2*m2)/(m1 + m2)*v2_c_scalar
+                    f_v2_c_sc = (2*m1)/(m1 + m2)*v1_c_scalar + (m2 - m1)/(m1 + m2)*v2_c_scalar
+                    
+                    f_v1 = f_v1_c_sc * unit_direction
+                    f_v2 = f_v2_c_sc * unit_direction
+                    
+                    object.velocity = f_v1
+                    other_object.velocity = f_v2
 
 
-                marked_objects.iloc[index]["total_velocity"] += f_v1 * dt
-                marked_objects.iloc[collided_object]["total_velocity"] += f_v2 * dt
+                # marked_objects.iloc[index]["total_velocity"] += f_v1 *     
+                # marked_objects.iloc[collided_object]["total_velocity"] += f_v2 * dt
 
+        # print(marked_objects)
 
-
-        for index, object in enumerate(marked_objects["object"]):
-            object.velocity = marked_objects.iloc[index]["total_velocity"]
+        # for index, object in enumerate(marked_objects["object"]):
+        #     object.velocity = marked_objects.iloc[index]["total_velocity"]
 
 
 
@@ -103,8 +120,11 @@ class CelestialObject(pg.sprite.Sprite):
             
                 force = self.G*self.mass*other_mass/(dist**2)
 
+
                 force_x = force*(Dx/dist)
                 force_y = force*(Dy/dist)
+
+                self.force = pg.Vector2(force_x, force_y)
 
                 total_force += np.array([force_x, force_y])
         
@@ -141,12 +161,12 @@ class Simulation:
         self.celestial_object_group = pg.sprite.Group()
 
 
-        self.slice = 10
+        self.slice = 5
         self.screen_cells = np.array([[pg.rect.Rect(j*self.SCREEN.width/self.slice, i*self.SCREEN.height/self.slice, self.SCREEN.width/self.slice, self.SCREEN.height/self.slice) for j in range(self.slice)] for i in range(self.slice)])
         
 
  
-        n = 50
+        n = 3
 
         self.celestial_objects = []
         for i in range(n):
