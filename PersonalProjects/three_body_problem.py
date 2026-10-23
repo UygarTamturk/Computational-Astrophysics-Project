@@ -58,11 +58,11 @@ class CelestialObject(pg.sprite.Sprite):
                 pos1, pos2 = object.position, other_object.position
                 Dpos = pos2 - pos1
                 dist = Dpos.length()
-                print(dist, object.size[0]/2 + other_object.size[0]/2)
+                print(object.id, dist, object.size[0]/2 + other_object.size[0]/2)
 
                 max_center_distance = object.size[0]/2 + other_object.size[0]/2
 
-                if dist > max_center_distance + 5 or dist < max_center_distance - 5:
+                if dist < max_center_distance:
                     
                     v1, v2 = object.velocity, other_object.velocity
                     m1, m2 = object.mass, other_object.mass
@@ -77,6 +77,10 @@ class CelestialObject(pg.sprite.Sprite):
                     
                     f_v1 = f_v1_c_sc * unit_direction
                     f_v2 = f_v2_c_sc * unit_direction
+
+                    overlap = max_center_distance - dist + 0.1
+                    object.position -= unit_direction * (overlap / 2)
+                    other_object.position += unit_direction * (overlap / 2)
                     
                     object.velocity = f_v1
                     other_object.velocity = f_v2
@@ -115,10 +119,13 @@ class CelestialObject(pg.sprite.Sprite):
                 other_velocity = obj.velocity
                 other_mass = obj.mass
 
+                # change clamping factor + fix the merging issue
+
                 Dx, Dy = other_position.x - self.position.x, other_position.y - self.position.y
-                dist = np.sqrt(max(Dx**2 + Dy**2, 10000))
+                dist = np.sqrt(Dx**2 + Dy**2)
+                clamping_dist = 300
             
-                force = self.G*self.mass*other_mass/(dist**2)
+                force = self.G*self.mass*other_mass/(dist**2 + clamping_dist**2)
 
 
                 force_x = force*(Dx/dist)
@@ -161,22 +168,22 @@ class Simulation:
         self.celestial_object_group = pg.sprite.Group()
 
 
-        self.slice = 5
+        self.slice = 50
         self.screen_cells = np.array([[pg.rect.Rect(j*self.SCREEN.width/self.slice, i*self.SCREEN.height/self.slice, self.SCREEN.width/self.slice, self.SCREEN.height/self.slice) for j in range(self.slice)] for i in range(self.slice)])
         
 
  
-        n = 3
+        n = 100
 
         self.celestial_objects = []
         for i in range(n):
             object_x = randint(100, self.SCREEN.width-100)
             object_y = randint(50, self.SCREEN.height-50)
-            mass = randint(200, 300)
+            mass = randint(50, 300)
             color = (randint(50, 200), randint(50, 200), randint(50, 200))
             
 
-            self.celestial_objects.append((i, object_x, object_y, mass, color, self.celestial_object_group))
+            self.celestial_objects.append((i, object_x, object_y, mass, (255, 255, 255), self.celestial_object_group))
 
         for obj in self.celestial_objects:
             self.celestial_object = CelestialObject(*obj)
