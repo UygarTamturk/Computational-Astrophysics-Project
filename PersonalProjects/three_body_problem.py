@@ -19,6 +19,40 @@ class StandartObjectSettings:
     SIZE: tuple[int, int] = (32, 32)
     COLOR: tuple[int, int, int] = (255, 255, 255) 
 
+
+class Layer:
+    def __init__(self, groups):
+        super().__init__(*groups)
+
+        self.simulation_settings = SimulationSettings()
+        self.SCREEN = self.simulation_settings.SCREEN
+
+        # Layer 0: rect value,<       self.cell_hierarchy = {0: {0: [pg.Rect(0, 0, self.SCREEN.width, self.SCREEN.height), None]}}
+
+    def check_cell(self, other_group):
+        for layer_index in self.cell_hierarchy:
+            layer = self.cell_hierarchy[layer_index]
+            for sublayer_index in layer:
+                sublayer_rect = layer[sublayer_index][0]
+                
+                if len(sublayer_rect.collidelistall(other_group)) == 0:
+                    continue
+
+                if len(sublayer_rect.collidelistall(other_group)) == 1:
+
+                    pass
+                    # object = other_group[0]
+                    # self.cell_hierarchy[layer_index][sublayer_index]
+
+                    # print(self.cell_hierarchy)
+                    
+
+                else:
+                    print("need for division")
+
+class SubLayer(Layer):
+    pass
+
 class CelestialObject(pg.sprite.Sprite):
 
     def __init__(self, id, x, y, mass, color, *groups):
@@ -58,7 +92,6 @@ class CelestialObject(pg.sprite.Sprite):
                 pos1, pos2 = object.position, other_object.position
                 Dpos = pos2 - pos1
                 dist = Dpos.length()
-                print(object.id, dist, object.size[0]/2 + other_object.size[0]/2)
 
                 max_center_distance = object.size[0]/2 + other_object.size[0]/2
 
@@ -84,26 +117,6 @@ class CelestialObject(pg.sprite.Sprite):
                     
                     object.velocity = f_v1
                     other_object.velocity = f_v2
-
-
-                # marked_objects.iloc[index]["total_velocity"] += f_v1 *     
-                # marked_objects.iloc[collided_object]["total_velocity"] += f_v2 * dt
-
-        # print(marked_objects)
-
-        # for index, object in enumerate(marked_objects["object"]):
-        #     object.velocity = marked_objects.iloc[index]["total_velocity"]
-
-
-
-        # v1f = (m1 - m2)/(m1 + m2)*v1i + (2*m2)/(m1 + m2)*v2i
-        # v2f = (2*m1)/(m1 + m2)*v1i + (m2 - m1)/(m1 + m2)*v2i
-
-        # x object - y object -> calculate two final velocities and two momentums
-        # f_velocity = pg.Vector2((self_obj.mass - obj.mass)/(self_obj.mass + obj.mass)*self_obj + (2*other_mass)/(self.mass + other_mass)*other_velocity)
-        # print(f_velocity)
-        # f_momentum = f_velocity * self.mass
-
 
 
     
@@ -166,6 +179,7 @@ class Simulation:
         self.run_simulation = True
 
         self.celestial_object_group = pg.sprite.Group()
+        self.screen_cells_group = pg.sprite.Group()
 
 
         self.slice = 50
@@ -173,7 +187,7 @@ class Simulation:
         
 
  
-        n = 100
+        n = 1
 
         self.celestial_objects = []
         for i in range(n):
@@ -187,6 +201,11 @@ class Simulation:
 
         for obj in self.celestial_objects:
             self.celestial_object = CelestialObject(*obj)
+
+
+        bh_method = BarnesHutMethod(self.screen_cells_group)
+        bh_method.check_cell(self.celestial_object_group.sprites())
+
 
 
     def run(self):
