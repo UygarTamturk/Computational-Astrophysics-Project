@@ -20,41 +20,134 @@ class StandartObjectSettings:
     COLOR: tuple[int, int, int] = (255, 255, 255) 
 
 
-class Layer:
-    def __init__(self, groups):
-        super().__init__(*groups)
+class Hierarchy(pg.sprite.Sprite):
+    def __init__(self, rect_value, layer_id, line_id, groups):
+        super().__init__(groups)
+
+        self.group = groups
 
         self.simulation_settings = SimulationSettings()
         self.SCREEN = self.simulation_settings.SCREEN
 
-        # Layer 0: rect value,<       self.cell_hierarchy = {0: {0: [pg.Rect(0, 0, self.SCREEN.width, self.SCREEN.height), None]}}
+        # we might not need layer_id as the length of line_id gives the id of the layer
+        self.layer_id = layer_id
+        self.line_id = line_id
 
-    def check_cell(self, other_group):
-        for layer_index in self.cell_hierarchy:
-            layer = self.cell_hierarchy[layer_index]
-            for sublayer_index in layer:
-                sublayer_rect = layer[sublayer_index][0]
+        self.rect_value = pg.Rect(*rect_value)
+        self.hierarchy_list = {1: []}
+
+        self.max_sprites = 1
+
+    def organize_hierarchy(self, layer=None):
+        print(f" 1{self.hierarchy_list}")
+
+        # if an index of a layer does not exist, delete it too from the self.hierarchy_list
+        if layer != None and len(self.hierarchy_list) > 1:
+            self.hierarchy_list[layer.layer_id].pop(layer.line_id[len(layer.line_id) - 1] - 1)
+            pass
+
+        for _layer in self.group.sprites():
+
+            if not _layer.layer_id in self.hierarchy_list.keys():
+                self.hierarchy_list[_layer.layer_id] = [_layer]
+                continue
+
+            elif _layer in self.hierarchy_list[_layer.layer_id]:
+                continue
+            
+            self.hierarchy_list[_layer.layer_id].append(_layer)
+
+    def pull_rect(self):
+        return self.rect_value
+
+    def check_sprites(self, others):
+
+        # add something so if all sublayers have no active sprites, delete all 4 layers (except for the parent layer as it is either the top layer or another sublayer of another parent layer)
+        # check objects from the bottom of the hierarchy, then go up in the list
+        # because we are splitting sublayer classes, we should somehow turn the sublayers into layers that will have new sublayers, deleting the sublayer class might be an option
+
+        bottom_sublayers = self.hierarchy_list[len(self.hierarchy_list)]
+        for index, layer in enumerate(bottom_sublayers):
+
+            collide_list = layer.rect_value.collidelistall(others)
+            check = True
+
+            # gotta update it so if it finds a collision, it should pass the entire checking
+            if len(collide_list) == 0:
+                parent_layer = layer.get_parent()
+                parent_sublayers = parent_layer.get_sublayers()
+                for sublayer in parent_sublayers:
+                    if sublayer.rect_value.collidelistall(others):
+                        print("YES IT SURVIVED!")
+                        pass
+
+                print("oh no")
+                parent_layer.delete_sublayers()
+                pass
+
+            elif len(collide_list) > 0 and len(collide_list) <= self.max_sprites:
+                pass
+
+            else:
+                layer.split_layer()
+            
+class Layer(Hierarchy, pg.sprite.Sprite):
+    def __init__(self, rect_value, layer_id, line_id, parent, groups):
+        super().__init__(rect_value, layer_id, line_id, groups)
+
+        self.parent = parent
+        self.sublayers = []
+
+    def add_sublayers(self, sublayers):
+        for sublayer in sublayers:
+            self.sublayers.append(sublayer)
+
+    def delete_sublayers(self):
+        for sublayer in self.sublayers:
+            self.organize_hierarchy(sublayer)
+            del sublayer
+
+        self.sublayers.clear()
+        
+    def split_layer(self):
+
+        # fix nx, ny, nw, nh values by using width*i and height*i (with offset using original layer's x and y position)
+
+        # dont forget to entegrate sprite inserting for sublayers
+        x, y, w, h = self.rect_value
+        new_sublayers = []
+
+        
+
+        for i in range(2):
+            for j in range(2):
+
                 
-                if len(sublayer_rect.collidelistall(other_group)) == 0:
-                    continue
+                
+                sublayer_line_id = self.line_id.copy()
+                sublayer_line_id.append(i*2 + j + 1)
+                
 
-                if len(sublayer_rect.collidelistall(other_group)) == 1:
+                nw = w/2
+                nh = h/2
 
-                    pass
-                    # object = other_group[0]
-                    # self.cell_hierarchy[layer_index][sublayer_index]
+                nx = x + nw*j
+                ny = y + nh*i
 
-                    # print(self.cell_hierarchy)
-                    
+                sublayer = Layer((nx, ny, nw, nh), self.layer_id + 1, sublayer_line_id, self, self.group)
 
-                else:
-                    print("need for division")
+                new_sublayers.append(sublayer)
 
-class SubLayer(Layer):
-    pass
+        
+        self.add_sublayers(new_sublayers)
+
+    def get_sublayers(self):
+        return self.sublayers
+
+    def get_parent(self):
+        return self.parent
 
 class CelestialObject(pg.sprite.Sprite):
-
     def __init__(self, id, x, y, mass, color, *groups):
         super().__init__(*groups)
 
@@ -117,9 +210,7 @@ class CelestialObject(pg.sprite.Sprite):
                     
                     object.velocity = f_v1
                     other_object.velocity = f_v2
-
-
-    
+  
     def move(self, objs, dt):
         # Energy Loss can be implemented to avoid repeated, predictable and unrealistic actions
 
@@ -178,17 +269,18 @@ class Simulation:
         self.time_taken = 0
         self.run_simulation = True
 
+        self.hierarchy_group = pg.sprite.Group()
         self.celestial_object_group = pg.sprite.Group()
         self.screen_cells_group = pg.sprite.Group()
 
 
-        self.slice = 50
+        self.slice = 1
         self.screen_cells = np.array([[pg.rect.Rect(j*self.SCREEN.width/self.slice, i*self.SCREEN.height/self.slice, self.SCREEN.width/self.slice, self.SCREEN.height/self.slice) for j in range(self.slice)] for i in range(self.slice)])
-        
+
+        self.layer = Layer((0, 0, self.SCREEN.width, self.SCREEN.height), 1, [1], None, self.hierarchy_group)
 
  
-        n = 1
-
+        n = 4
         self.celestial_objects = []
         for i in range(n):
             object_x = randint(100, self.SCREEN.width-100)
@@ -202,12 +294,6 @@ class Simulation:
         for obj in self.celestial_objects:
             self.celestial_object = CelestialObject(*obj)
 
-
-        bh_method = BarnesHutMethod(self.screen_cells_group)
-        bh_method.check_cell(self.celestial_object_group.sprites())
-
-
-
     def run(self):
         while self.run_simulation:
             
@@ -218,9 +304,12 @@ class Simulation:
                 if event.type == pg.QUIT:
                     self.run_simulation = False
 
+            self.layer.organize_hierarchy()
+
             for obj in self.celestial_object_group.sprites():
                 obj.move([other_obj if other_obj.id != obj.id else 0 for other_obj in self.celestial_object_group.sprites()], dt)
 
+            self.layer.check_sprites(self.celestial_object_group.sprites())
             for c in self.screen_cells:
                 for r in c:
                     r = pg.Rect(r[:])
